@@ -28,38 +28,14 @@ body {
   font-size: 16px;
   min-height: 100vh;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
 }
 
 .bg {
-  position: fixed; inset: 0; z-index: 0; overflow: hidden;
-}
-.bg::before {
-  content: '';
-  position: absolute; top: -50%; left: -30%;
-  width: 160%; height: 200%;
+  position: fixed; inset: 0; z-index: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(64,64,64,0.15), transparent),
-    radial-gradient(ellipse 50% 70% at 70% 60%, rgba(50,50,50,0.10), transparent),
-    radial-gradient(ellipse 40% 40% at 50% 80%, rgba(45,45,45,0.12), transparent),
-    radial-gradient(ellipse 60% 50% at 20% 70%, rgba(55,55,55,0.08), transparent),
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(64,64,64,0.15), transparent 70%),
+    radial-gradient(ellipse 50% 70% at 70% 60%, rgba(50,50,50,0.10), transparent 70%),
     var(--bg);
-  animation: bgdrift 20s ease-in-out infinite alternate;
-}
-.bg::after {
-  content: '';
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 80% 50% at 50% 40%, black 30%, transparent 70%);
-}
-
-@keyframes bgdrift {
-  0%   { transform: scale(1)    translate(0,0); }
-  50%  { transform: scale(1.05) translate(-1%,0.5%); }
-  100% { transform: scale(1.02) translate(0.5%,-0.5%); }
 }
 
 .container {
@@ -72,32 +48,19 @@ body {
   font-size: 48px; font-weight: 700; letter-spacing: -1.5px;
   background: linear-gradient(180deg, #f5f5f5 0%, #a0a0a0 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  animation: fadeup 0.8s cubic-bezier(0.16,1,0.3,1);
 }
 .logo-sub {
   font-size: 14px; color: var(--muted); font-weight: 400;
   letter-spacing: 0.5px; text-transform: uppercase; margin-top: -32px;
-  animation: fadeup 0.8s 0.1s cubic-bezier(0.16,1,0.3,1) both;
 }
 
-@keyframes fadeup {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.search-wrap {
-  width: 100%; position: relative;
-  animation: fadeup 0.8s 0.2s cubic-bezier(0.16,1,0.3,1) both;
-}
+.search-wrap { width: 100%; position: relative; }
 .search-bar {
   display: flex; align-items: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 4px;
-  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.search-bar:focus-within {
-  border-color: var(--ring); box-shadow: 0 0 0 3px rgba(82,82,82,0.25);
-}
+.search-bar:focus-within { border-color: var(--ring); }
 .search-bar input {
   flex: 1; background: transparent; border: none; outline: none;
   color: var(--text); font-size: 18px; padding: 16px;
@@ -107,23 +70,18 @@ body {
 .search-bar .go-btn {
   background: #262626; color: var(--text); border: 1px solid var(--border);
   border-radius: 12px; padding: 14px 28px; font-size: 15px; font-weight: 600;
-  cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
-  white-space: nowrap;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
 }
 .search-bar .go-btn:hover { background: #303030; border-color: var(--ring); }
-.search-bar .go-btn:active { transform: scale(0.97); }
 
 .sections {
-  width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-  animation: fadeup 0.8s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+  width: 100%; display: flex; gap: 20px;
 }
+.sections > * { flex: 1; min-width: 0; }
 .card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px;
-  transition: border-color 0.2s;
 }
-.card:hover { border-color: var(--ring); }
 .card-header {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
 }
@@ -135,7 +93,6 @@ body {
   background: transparent; border: 1px solid var(--border);
   color: var(--muted); font-size: 11px; padding: 5px 12px; border-radius: 8px;
   cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .card-header .clear-btn:hover { color: #ff6b6b; border-color: var(--danger-border); background: var(--danger); }
 
@@ -150,14 +107,11 @@ body {
 .list-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px;
-  background: transparent; transition: background 0.15s;
-  animation: fadeup 0.3s ease both;
 }
 .list-item:hover { background: rgba(255,255,255,0.03); }
 .list-item a {
   flex: 1; color: var(--text); text-decoration: none; font-size: 14px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  transition: color 0.15s;
 }
 .list-item a:hover { color: #fff; }
 .list-item .favicon {
@@ -171,69 +125,45 @@ body {
 .list-item .item-btn {
   background: transparent; border: 1px solid var(--border);
   color: var(--muted); font-size: 11px; padding: 4px 10px; border-radius: 6px;
-  cursor: pointer; font-family: inherit;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
 }
 .list-item .item-btn:hover { color: var(--text); border-color: var(--ring); background: var(--accent); }
-.list-item .item-btn.danger:hover { color: #ff6b6b; border-color: var(--danger-border); background: var(--danger); }
+.list-item .item-btn.del:hover { color: #ff6b6b; border-color: var(--danger-border); background: var(--danger); }
 
 .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
 
 /* Toast */
 .toast {
-  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px);
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
   background: var(--surface); border: 1px solid var(--border);
   color: var(--text); padding: 12px 24px; border-radius: 12px; font-size: 14px;
-  z-index: 200; opacity: 0; transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+  z-index: 200; opacity: 0; visibility: hidden;
   pointer-events: none; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity: 1; visibility: visible; }
 
 /* Modal */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-  animation: modalIn 0.2s cubic-bezier(0.16,1,0.3,1);
-  backdrop-filter: blur(4px);
-}
-@keyframes modalIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
 }
 .modal {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 28px; max-width: 400px; width: 90%;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  animation: modalPop 0.25s cubic-bezier(0.16,1,0.3,1);
 }
-@keyframes modalPop {
-  from { opacity: 0; transform: scale(0.95) translateY(8px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
-}
-.modal h3 {
-  font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text);
-}
-.modal p {
-  font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.5;
-}
-.modal-actions {
-  display: flex; justify-content: flex-end; gap: 10px;
-}
+.modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.modal p { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .modal-cancel {
   background: transparent; border: 1px solid var(--border); color: var(--muted);
-  padding: 10px 20px; border-radius: 10px; font-size: 14px;
-  cursor: pointer; font-family: inherit; font-weight: 500;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  padding: 10px 20px; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit;
 }
 .modal-cancel:hover { color: var(--text); border-color: var(--ring); background: var(--accent); }
 .modal-confirm {
   background: var(--danger); border: 1px solid var(--danger-border); color: #ff6b6b;
-  padding: 10px 20px; border-radius: 10px; font-size: 14px;
-  cursor: pointer; font-family: inherit; font-weight: 600;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  padding: 10px 20px; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; font-weight: 600;
 }
-.modal-confirm:hover { background: #4a2020; }
-.modal-confirm:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
@@ -279,123 +209,85 @@ const histEl = document.getElementById('hist');
 const toastEl = document.getElementById('toast');
 const modalRoot = document.getElementById('modal-root');
 
-/* ===== Toast ===== */
+/* Toast */
 let toastTimer;
 function showToast(msg) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2000);
 }
 
-/* ===== Modal ===== */
+/* Modal */
 function showModal(title, desc, onConfirm) {
-  modalRoot.innerHTML = `
-    <div class="modal-overlay" onclick="closeModal()">
-      <div class="modal" onclick="event.stopPropagation()">
-        <h3>${title}</h3>
-        <p>${desc}</p>
-        <div class="modal-actions">
-          <button class="modal-cancel" onclick="closeModal()">Cancel</button>
-          <button class="modal-confirm" onclick="closeModal();(${onConfirm.toString()})()">Confirm</button>
-        </div>
-      </div>
-    </div>
-  `;
+  modalRoot.innerHTML = '<div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>'+title+'</h3><p>'+desc+'</p><div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-confirm" onclick="closeModal();(' + onConfirm.toString() + ')()">Delete</button></div></div></div>';
 }
 function closeModal() { modalRoot.innerHTML = ''; }
 
-/* ===== PS5 Detection ===== */
+/* PS5 */
 if (!navigator.userAgent.includes('PlayStation 5')) {
   showToast('This page displays best on PS5');
 }
 
-/* ===== Storage ===== */
+/* Storage */
 if (!localStorage.history) localStorage.history = '';
 if (!localStorage.fav) localStorage.fav = '';
 
-/* ===== Navigation ===== */
+/* Navigate */
 function go() {
-  const val = urlInput.value.trim();
+  var val = urlInput.value.trim();
   if (!val || val === 'http://' || val === 'https://') return;
   addHistory(val);
   window.location.href = val;
 }
 
-/* ===== History ===== */
+/* History */
 function addHistory(url) {
-  const item = `<a href="${url}" target="_self">${url}</a>`;
-  localStorage.history = item + localStorage.history;
+  localStorage.history = '<a href="'+url+'" target="_self">'+url+'</a>' + localStorage.history;
 }
-
-function clearHistory() {
-  localStorage.history = '';
-  showToast('History cleared');
-  renderAll();
-}
-
+function clearHistory() { localStorage.history = ''; showToast('History cleared'); renderAll(); }
 function remHist(url) {
-  const items = localStorage.history.split('<br>').filter(Boolean);
-  localStorage.history = items.filter(e => !e.includes(url)).join('<br>');
-  showToast('Removed from history');
-  renderAll();
+  var items = localStorage.history.split('<br>').filter(Boolean);
+  localStorage.history = items.filter(function(e){ return e.indexOf(url) === -1; }).join('<br>');
+  showToast('Removed'); renderAll();
 }
 
-/* ===== Favorites ===== */
-function clearFavorites() {
-  localStorage.fav = '';
-  showToast('Favorites cleared');
-  renderAll();
-}
-
+/* Favorites */
+function clearFavorites() { localStorage.fav = ''; showToast('Favorites cleared'); renderAll(); }
 function addFav(url) {
-  const existing = localStorage.fav.split('<br>').filter(Boolean);
-  if (existing.find(e => e.includes(url))) { showToast('Already saved'); return; }
-  const item = `<a href="${url}" target="_self">${url}</a>`;
-  localStorage.fav = item + localStorage.fav;
-  showToast('Added to favorites');
-  renderAll();
+  var items = localStorage.fav.split('<br>').filter(Boolean);
+  if (items.find(function(e){ return e.indexOf(url) !== -1; })) { showToast('Already saved'); return; }
+  localStorage.fav = '<a href="'+url+'" target="_self">'+url+'</a>' + localStorage.fav;
+  showToast('Saved'); renderAll();
 }
-
 function remFav(url) {
-  const items = localStorage.fav.split('<br>').filter(Boolean);
-  localStorage.fav = items.filter(e => !e.includes(url)).join('<br>');
-  showToast('Removed from favorites');
-  renderAll();
+  var items = localStorage.fav.split('<br>').filter(Boolean);
+  localStorage.fav = items.filter(function(e){ return e.indexOf(url) === -1; }).join('<br>');
+  showToast('Removed'); renderAll();
 }
 
-/* ===== Render ===== */
+/* Render */
 function renderList(data, kind) {
   if (!data) return '<p class="empty">Nothing here yet</p>';
-  const items = data.split('<br>').filter(Boolean);
+  var items = data.split('<br>').filter(Boolean);
   if (!items.length) return '<p class="empty">Nothing here yet</p>';
 
-  return items.reverse().map((h, i) => {
-    const match = h.match(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/);
-    if (!match) return '';
-    const url = match[1];
-    const label = match[2];
-    const short = label.length > 60 ? label.slice(0,57) + '...' : label;
-    let domain = '';
+  return items.reverse().map(function(h, i){
+    var m = h.match(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/);
+    if (!m) return '';
+    var url = m[1], label = m[2];
+    var short = label.length > 60 ? label.slice(0,57) + '...' : label;
+    var domain = '';
     try { domain = new URL(url).hostname.replace('www.',''); } catch(e) {}
 
-    let btns = '';
+    var btns = '';
     if (kind === 'hist') {
-      btns = `
-        <button class="item-btn" onclick="addFav('${url}')">Save</button>
-        <button class="item-btn danger" onclick="showModal('Delete from history?','${short}',()=>remHist('${url}'))">✕</button>
-      `;
+      btns = '<button class="item-btn" onclick="addFav(\''+url+'\')">Save</button><button class="item-btn del" onclick="showModal(\'Delete?\',\''+short+'\',function(){remHist(\''+url+'\')})">Del</button>';
     } else {
-      btns = `
-        <button class="item-btn danger" onclick="showModal('Remove from favorites?','${short}',()=>remFav('${url}'))">✕</button>
-      `;
+      btns = '<button class="item-btn del" onclick="showModal(\'Remove?\',\''+short+'\',function(){remFav(\''+url+'\')})">Del</button>';
     }
 
-    return `<div class="list-item" style="animation-delay:${i*0.04}s">
-      <div class="favicon">${domain ? domain.slice(0,2).toUpperCase() : '?'}</div>
-      <a href="${url}" target="_self" title="${label}">${short}</a>
-      <div class="item-actions">${btns}</div>
-    </div>`;
+    return '<div class="list-item"><div class="favicon">'+(domain?domain.slice(0,2).toUpperCase():'?')+'</div><a href="'+url+'" target="_self" title="'+label+'">'+short+'</a><div class="item-actions">'+btns+'</div></div>';
   }).join('');
 }
 
