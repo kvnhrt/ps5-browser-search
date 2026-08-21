@@ -73,6 +73,10 @@ body {
   cursor: pointer; font-family: inherit; white-space: nowrap;
 }
 .search-bar .go-btn:hover { background: #303030; border-color: var(--ring); }
+.search-bar .fav-btn {
+  background: transparent; color: var(--muted); border: 1px dashed var(--border);
+}
+.search-bar .fav-btn:hover { color: var(--text); background: var(--accent); border-style: solid; }
 
 .sections {
   width: 100%; display: flex; gap: 20px;
@@ -112,6 +116,7 @@ body {
 .list-item a {
   flex: 1; color: var(--text); text-decoration: none; font-size: 14px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
 }
 .list-item a:hover { color: #fff; }
 .list-item .favicon {
@@ -153,7 +158,7 @@ body {
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 .modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
-.modal p { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+.modal p { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; word-break: break-all; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .modal-cancel {
   background: transparent; border: 1px solid var(--border); color: var(--muted);
@@ -178,6 +183,7 @@ body {
     <div class="search-bar">
       <input id="url" type="url" value="http://" placeholder="Enter URL or search...">
       <button class="go-btn" onclick="go()">Open</button>
+      <button class="go-btn fav-btn" onclick="favInput()">Fav</button>
     </div>
   </div>
 
@@ -203,98 +209,291 @@ body {
 <div id="modal-root"></div>
 
 <script>
-const urlInput = document.getElementById('url');
-const favsEl = document.getElementById('favs');
-const histEl = document.getElementById('hist');
-const toastEl = document.getElementById('toast');
-const modalRoot = document.getElementById('modal-root');
+var urlInput = document.getElementById('url');
+var favsEl = document.getElementById('favs');
+var histEl = document.getElementById('hist');
+var toastEl = document.getElementById('toast');
+var modalRoot = document.getElementById('modal-root');
 
-/* Toast */
-let toastTimer;
+var HISTORY_MAX = 50;
+var SEARCH_URL = 'https://duckduckgo.com/?q=';
+
 function showToast(msg) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2000);
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2000);
 }
 
-/* Modal */
+var modalConfirmFn = null;
 function showModal(title, desc, onConfirm) {
-  modalRoot.innerHTML = '<div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>'+title+'</h3><p>'+desc+'</p><div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-confirm" onclick="closeModal();(' + onConfirm.toString() + ')()">Delete</button></div></div></div>';
+  modalConfirmFn = onConfirm;
+  modalRoot.innerHTML =
+    '<div class="modal-overlay" id="mo"><div class="modal"><h3></h3><p></p>' +
+    '<div class="modal-actions"><button type="button" class="modal-cancel" id="mCancel">Cancel</button>' +
+    '<button type="button" class="modal-confirm" id="mOk">Delete</button></div></div></div>';
+  modalRoot.querySelector('h3').textContent = title;
+  modalRoot.querySelector('p').textContent = desc;
+  modalRoot.querySelector('.modal-overlay').addEventListener('click', function(ev){
+    if (ev.target.id === 'mo') closeModal();
+  });
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mOk').addEventListener('click', function(){
+    var fn = modalConfirmFn;
+    closeModal();
+    if (fn) fn();
+  });
 }
-function closeModal() { modalRoot.innerHTML = ''; }
+function closeModal() {
+  modalRoot.innerHTML = '';
+  modalConfirmFn = null;
+}
 
-/* PS5 */
 if (!navigator.userAgent.includes('PlayStation 5')) {
-  showToast('This page displays best on PS5');
+  window.addEventListener('load', function(){ showToast('This page displays best on PS5'); });
 }
 
-/* Storage */
-if (!localStorage.history) localStorage.history = '';
-if (!localStorage.fav) localStorage.fav = '';
+function normalizeUrl(raw) {
+  var v = String(raw == null ? '' : raw).trim();
+  if (!v) return null;
+  if (!/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(v)) v = 'http://' + v;
+  try {
+    var u = new URL(v);
+    return {
+      href: u.href,
+      key: u.hostname.toLowerCase() + '/' + (u.pathname + u.search + u.hash).toLowerCase()
+    };
+  } catch (e) {
+    return null;
+  }
+}
 
-/* Navigate */
-function go() {
+function looksLikeUrl(v) {
+  if (/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(v)) {
+    var rest = v.replace(/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//, '');
+    var host = rest.split(/[\/?#:@]/)[0].split(':')[0];
+    if (!host) return false;
+    return host.indexOf('.') !== -1 || /^localhost$/i.test(host) ||
+           /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.indexOf(':') !== -1;
+  }
+  if (/\s/.test(v)) return false;
+  if (/^localhost(:\d+)?([\/?#].*)?$/i.test(v)) return true;
+  if (/^\d{1,3}(\.\d{1,3}){3}(:\d+)?([\/?#].*)?$/.test(v)) return true;
+  return /^[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(:\d+)?([\/?#].*)?$/.test(v);
+}
+
+function resolveInput() {
   var val = urlInput.value.trim();
-  if (!val || val === 'http://' || val === 'https://') return;
-  addHistory(val);
-  window.location.href = val;
+  if (!val || val === 'http://' || val === 'https://') return null;
+  if (!looksLikeUrl(val)) {
+    var q = val.replace(/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//, '');
+    return SEARCH_URL + encodeURIComponent(q);
+  }
+  var n = normalizeUrl(val);
+  return n ? n.href : SEARCH_URL + encodeURIComponent(val.replace(/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//, ''));
 }
 
-/* History */
+function go() {
+  var target = resolveInput();
+  if (!target) return;
+  addHistory(target);
+  window.location.href = target;
+}
+
+function favInput() {
+  var target = resolveInput();
+  if (!target) return;
+  addFav(target);
+}
+
+function loadList(key) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return [];
+    var arr = JSON.parse(raw);
+    if (Array.isArray(arr)) {
+      return arr.filter(function(e){ return e && typeof e.u === 'string' && e.u; })
+                .map(function(e){ return { u: e.u, t: typeof e.t === 'number' ? e.t : 0 }; });
+    }
+  } catch (err) {}
+  return [];
+}
+
+function saveList(key, list) {
+  try {
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch (err) {}
+}
+
+function findIndexByKey(list, key) {
+  for (var i = 0; i < list.length; i++) {
+    var n = normalizeUrl(list[i].u);
+    if (n && n.key === key) return i;
+  }
+  return -1;
+}
+
 function addHistory(url) {
-  localStorage.history = '<a href="'+url+'" target="_self">'+url+'</a>' + localStorage.history;
-}
-function clearHistory() { localStorage.history = ''; showToast('History cleared'); renderAll(); }
-function remHist(url) {
-  var items = localStorage.history.split('<br>').filter(Boolean);
-  localStorage.history = items.filter(function(e){ return e.indexOf(url) === -1; }).join('<br>');
-  showToast('Removed'); renderAll();
+  var n = normalizeUrl(url);
+  if (!n) return;
+  var list = loadList('history');
+  var i = findIndexByKey(list, n.key);
+  if (i !== -1) list.splice(i, 1);
+  list.unshift({ u: n.href, t: Date.now() });
+  if (list.length > HISTORY_MAX) list.length = HISTORY_MAX;
+  saveList('history', list);
+  renderAll();
 }
 
-/* Favorites */
-function clearFavorites() { localStorage.fav = ''; showToast('Favorites cleared'); renderAll(); }
+function remHist(key) {
+  saveList('history', loadList('history').filter(function(e){
+    var n = normalizeUrl(e.u);
+    return !n || n.key !== key;
+  }));
+  renderAll();
+  showToast('Removed');
+}
+
+function clearHistory() {
+  saveList('history', []);
+  renderAll();
+  showToast('History cleared');
+}
+
 function addFav(url) {
-  var items = localStorage.fav.split('<br>').filter(Boolean);
-  if (items.find(function(e){ return e.indexOf(url) !== -1; })) { showToast('Already saved'); return; }
-  localStorage.fav = '<a href="'+url+'" target="_self">'+url+'</a>' + localStorage.fav;
-  showToast('Saved'); renderAll();
-}
-function remFav(url) {
-  var items = localStorage.fav.split('<br>').filter(Boolean);
-  localStorage.fav = items.filter(function(e){ return e.indexOf(url) === -1; }).join('<br>');
-  showToast('Removed'); renderAll();
+  var n = normalizeUrl(url);
+  if (!n) return;
+  var list = loadList('fav');
+  if (findIndexByKey(list, n.key) !== -1) {
+    showToast('Already saved');
+    return;
+  }
+  list.unshift({ u: n.href, t: Date.now() });
+  saveList('fav', list);
+  renderAll();
+  showToast('Saved');
 }
 
-/* Render */
-function renderList(data, kind) {
-  if (!data) return '<p class="empty">Nothing here yet</p>';
-  var items = data.split('<br>').filter(Boolean);
-  if (!items.length) return '<p class="empty">Nothing here yet</p>';
+function remFav(key) {
+  saveList('fav', loadList('fav').filter(function(e){
+    var n = normalizeUrl(e.u);
+    return !n || n.key !== key;
+  }));
+  renderAll();
+  showToast('Removed');
+}
 
-  return items.reverse().map(function(h, i){
-    var m = h.match(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/);
-    if (!m) return '';
-    var url = m[1], label = m[2];
-    var short = label.length > 60 ? label.slice(0,57) + '...' : label;
+function clearFavorites() {
+  saveList('fav', []);
+  renderAll();
+  showToast('Favorites cleared');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+
+function entryLabel(url) {
+  return url.replace(/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//, '').replace(/\/$/, '');
+}
+
+function renderList(el, list, kind) {
+  if (!list.length) {
+    el.innerHTML = '<p class="empty">Nothing here yet</p>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var url = list[i].u;
+    var label = entryLabel(url);
+    var short = label.length > 60 ? label.slice(0, 57) + '...' : label;
     var domain = '';
-    try { domain = new URL(url).hostname.replace('www.',''); } catch(e) {}
-
+    try { domain = new URL(url).hostname.replace(/^www\./i, ''); } catch (err) {}
     var btns = '';
     if (kind === 'hist') {
-      btns = '<button class="item-btn" onclick="addFav(\''+url+'\')">Save</button><button class="item-btn del" onclick="showModal(\'Delete?\',\''+short+'\',function(){remHist(\''+url+'\')})">Del</button>';
+      btns = '<button type="button" class="item-btn" data-i="' + i + '" data-act="save">Save</button>' +
+             '<button type="button" class="item-btn del" data-i="' + i + '" data-act="del">Del</button>';
     } else {
-      btns = '<button class="item-btn del" onclick="showModal(\'Remove?\',\''+short+'\',function(){remFav(\''+url+'\')})">Del</button>';
+      btns = '<button type="button" class="item-btn del" data-i="' + i + '" data-act="del">Del</button>';
     }
+    html += '<div class="list-item">' +
+      '<div class="favicon">' + escapeHtml(domain ? domain.slice(0, 2).toUpperCase() : '?') + '</div>' +
+      '<a data-i="' + i + '" href="' + escapeHtml(url) + '" title="' + escapeHtml(label) + '">' + escapeHtml(short) + '</a>' +
+      '<div class="item-actions">' + btns + '</div>' +
+      '</div>';
+  }
+  el.innerHTML = html;
+}
 
-    return '<div class="list-item"><div class="favicon">'+(domain?domain.slice(0,2).toUpperCase():'?')+'</div><a href="'+url+'" target="_self" title="'+label+'">'+short+'</a><div class="item-actions">'+btns+'</div></div>';
-  }).join('');
+function findDataTarget(node) {
+  while (node) {
+    if (node.nodeType === 1 && node.hasAttribute && node.hasAttribute('data-i')) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+function handleAction(kind, act, idx) {
+  var list = loadList(kind === 'hist' ? 'history' : 'fav');
+  var entry = list[idx];
+  if (!entry) { renderAll(); return; }
+  var n = normalizeUrl(entry.u);
+  if (!n) { renderAll(); return; }
+  if (act === 'open') {
+    addHistory(n.href);
+    window.location.href = n.href;
+  } else if (act === 'save') {
+    addFav(n.href);
+  } else if (kind === 'hist') {
+    remHist(n.key);
+  } else {
+    remFav(n.key);
+  }
+}
+
+function onListClick(ev, kind) {
+  var t = findDataTarget(ev.target);
+  if (!t) return;
+  ev.preventDefault();
+  handleAction(kind, t.getAttribute('data-act') || 'open', parseInt(t.getAttribute('data-i'), 10));
 }
 
 function renderAll() {
-  favsEl.innerHTML = renderList(localStorage.fav, 'fav');
-  histEl.innerHTML = renderList(localStorage.history, 'hist');
+  renderList(favsEl, loadList('fav'), 'fav');
+  renderList(histEl, loadList('history'), 'hist');
 }
+
+favsEl.addEventListener('click', function(ev){ onListClick(ev, 'fav'); });
+histEl.addEventListener('click', function(ev){ onListClick(ev, 'hist'); });
+
+urlInput.addEventListener('keydown', function(ev){
+  if (ev.key === 'Enter' || ev.keyCode === 13) go();
+});
+
+(function migrateLegacyStorage() {
+  ['fav', 'history'].forEach(function(k){
+    var raw;
+    try { raw = localStorage.getItem(k); } catch (e) { raw = null; }
+    if (!raw) {
+      saveList(k, []);
+      return;
+    }
+    try {
+      var arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return;
+    } catch (err) {}
+    var migrated = [];
+    var re = /href="([^"]+)"/g;
+    var m;
+    while ((m = re.exec(raw)) !== null) {
+      var n = normalizeUrl(m[1]);
+      if (n && findIndexByKey(migrated, n.key) === -1) migrated.push({ u: n.href, t: 0 });
+    }
+    saveList(k, migrated);
+  });
+})();
 
 renderAll();
 </script>
