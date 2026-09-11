@@ -169,6 +169,17 @@ body {
   background: var(--danger); border: 1px solid var(--danger-border); color: #ff6b6b;
   padding: 10px 20px; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; font-weight: 600;
 }
+.modal-input {
+  width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 14px; padding: 12px 14px; font-family: inherit;
+  margin-bottom: 20px; outline: none;
+}
+.modal-input:focus { border-color: var(--ring); }
+.modal-save {
+  background: #262626; border: 1px solid var(--border); color: var(--text);
+  padding: 10px 20px; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; font-weight: 600;
+}
+.modal-save:hover { background: #303030; border-color: var(--ring); }
 </style>
 </head>
 <body>
@@ -247,6 +258,32 @@ function showModal(title, desc, onConfirm) {
 function closeModal() {
   modalRoot.innerHTML = '';
   modalConfirmFn = null;
+}
+
+function showEditModal(currentUrl, onConfirm) {
+  modalRoot.innerHTML =
+    '<div class="modal-overlay" id="mo"><div class="modal"><h3>Edit favorite</h3>' +
+    '<input type="url" id="mInput" class="modal-input" placeholder="Enter URL">' +
+    '<div class="modal-actions"><button type="button" class="modal-cancel" id="mCancel">Cancel</button>' +
+    '<button type="button" class="modal-save" id="mOk">Save</button></div></div></div>';
+  var input = modalRoot.querySelector('#mInput');
+  input.value = currentUrl;
+  modalRoot.querySelector('.modal-overlay').addEventListener('click', function(ev){
+    if (ev.target.id === 'mo') closeModal();
+  });
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mOk').addEventListener('click', function(){
+    var val = input.value;
+    closeModal();
+    if (onConfirm) onConfirm(val);
+  });
+  input.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter' || ev.keyCode === 13) {
+      ev.preventDefault();
+      document.getElementById('mOk').click();
+    }
+  });
+  setTimeout(function(){ input.focus(); input.select(); }, 0);
 }
 
 if (!navigator.userAgent.includes('PlayStation 5')) {
@@ -389,6 +426,23 @@ function clearFavorites() {
   showToast('Favorites cleared');
 }
 
+function editFav(key, newRaw) {
+  var n = normalizeUrl(newRaw);
+  if (!n) { showToast('Invalid URL'); return; }
+  var list = loadList('fav');
+  var i = findIndexByKey(list, key);
+  if (i === -1) { renderAll(); return; }
+  var dupIdx = findIndexByKey(list, n.key);
+  if (dupIdx !== -1 && dupIdx !== i) {
+    showToast('Already saved');
+    return;
+  }
+  list[i] = { u: n.href, t: list[i].t };
+  saveList('fav', list);
+  renderAll();
+  showToast('Updated');
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, function(c){
     return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
@@ -416,7 +470,8 @@ function renderList(el, list, kind) {
       btns = '<button type="button" class="item-btn" data-i="' + i + '" data-act="save">Save</button>' +
              '<button type="button" class="item-btn del" data-i="' + i + '" data-act="del">Del</button>';
     } else {
-      btns = '<button type="button" class="item-btn del" data-i="' + i + '" data-act="del">Del</button>';
+      btns = '<button type="button" class="item-btn" data-i="' + i + '" data-act="edit">Edit</button>' +
+             '<button type="button" class="item-btn del" data-i="' + i + '" data-act="del">Del</button>';
     }
     html += '<div class="list-item">' +
       '<div class="favicon">' + escapeHtml(domain ? domain.slice(0, 2).toUpperCase() : '?') + '</div>' +
@@ -446,6 +501,8 @@ function handleAction(kind, act, idx) {
     window.location.href = n.href;
   } else if (act === 'save') {
     addFav(n.href);
+  } else if (act === 'edit') {
+    showEditModal(n.href, function(newUrl){ editFav(n.key, newUrl); });
   } else if (kind === 'hist') {
     remHist(n.key);
   } else {
